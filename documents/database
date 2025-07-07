@@ -1,0 +1,86 @@
+-- CREAR TABLA provinces
+CREATE TABLE provinces (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    display_order INTEGER
+);
+
+-- CREAR TABLA locations
+CREATE TABLE locations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    id_province INTEGER REFERENCES provinces(id),
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8)
+);
+
+-- CREAR TABLA users
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
+-- CREAR TABLA event_locations
+CREATE TABLE event_locations (
+    id SERIAL PRIMARY KEY,
+    id_location INTEGER REFERENCES locations(id),
+    name VARCHAR(255) NOT NULL,
+    full_address VARCHAR(255),
+    max_capacity INTEGER NOT NULL,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    id_creator_user INTEGER REFERENCES users(id)
+);
+
+-- CREAR TABLA events
+CREATE TABLE events (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    id_event_category INTEGER,
+    id_event_location INTEGER REFERENCES event_locations(id),
+    start_date TIMESTAMP,
+    duration_in_minutes INTEGER,
+    price NUMERIC(12,2),
+    enabled_for_enrollment BOOLEAN DEFAULT FALSE,
+    max_assistance INTEGER,
+    id_creator_user INTEGER REFERENCES users(id)
+);
+
+-- CREAR TABLA event_enrollments
+CREATE TABLE event_enrollments (
+    id SERIAL PRIMARY KEY,
+    id_event INTEGER REFERENCES events(id) ON DELETE CASCADE,
+    id_user INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    description TEXT,
+    registration_date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    attended BOOLEAN DEFAULT FALSE,
+    observations TEXT,
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5)
+);
+
+-- CREAR TABLA tags
+CREATE TABLE tags (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+-- TABLA INTERMEDIA: eventos <-> tags
+CREATE TABLE event_tags (
+    id SERIAL PRIMARY KEY,
+    id_event INTEGER REFERENCES events(id) ON DELETE CASCADE,
+    id_tag INTEGER REFERENCES tags(id) ON DELETE CASCADE
+);
+
+-- CREAR TABLA event_categories
+CREATE TABLE event_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    display_order INTEGER
+);
