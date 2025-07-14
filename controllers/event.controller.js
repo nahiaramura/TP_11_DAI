@@ -9,7 +9,6 @@ export const listEvents = async (req, res) => {
     const events = await getAllEvents(limit, offset);
 
     const enriched = await Promise.all(events.map(async ev => {
-      // tags
       const tagsRes = await pool.query(`
         SELECT t.id, t.name
         FROM event_tags et
@@ -54,7 +53,6 @@ export const getEventDetail = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // traer tags
     const tagsRes = await pool.query(`
       SELECT t.id, t.name
       FROM event_tags et
@@ -65,6 +63,83 @@ export const getEventDetail = async (req, res) => {
     res.json({
       ...event,
       tags: tagsRes.rows
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const createEvent = async (req, res) => {
+  const {
+    name,
+    description,
+    id_event_category,
+    id_event_location,
+    start_date,
+    duration_in_minutes,
+    price,
+    enabled_for_enrollment,
+    max_assistance
+  } = req.body;
+
+  try {
+    // validaciones básicas
+    if (!name || name.length < 3) {
+      return res.status(400).json({ success: false, message: "Name is required and must be at least 3 characters." });
+    }
+    if (!description || description.length < 3) {
+      return res.status(400).json({ success: false, message: "Description is required and must be at least 3 characters." });
+    }
+    if (max_assistance < 0) {
+      return res.status(400).json({ success: false, message: "max_assistance cannot be negative." });
+    }
+    if (price < 0 || duration_in_minutes < 0) {
+      return res.status(400).json({ success: false, message: "Price and duration must be positive numbers." });
+    }
+
+    // chequeo de max_assistance vs max_capacity del lugar
+    const locResult = await pool.query(
+      `SELECT max_capacity FROM event_locations WHERE id = $1`,
+      [id_event_location]
+    );
+
+    if (locResult.rows.length === 0) {
+      return res.status(400).json({ success: false, message: "Event location does not exist." });
+    }
+
+    const max_capacity = parseInt(locResult.rows[0].max_capacity);
+    if (max_assistance > max_capacity) {
+      return res.status(400).json({
+        success: false,
+        message: `max_assistance (${max_assistance}) cannot exceed event location capacity (${max_capacity}).`
+      });
+    }
+
+    const insertResult = await pool.query(`
+      INSERT INTO events (
+        name, description, id_event_category, id_event_location,
+        start_date, duration_in_minutes, price,
+        enabled_for_enrollment, max_assistance
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING *
+    `, [
+      name,
+      description,
+      id_event_category,
+      id_event_location,
+      start_date,
+      duration_in_minutes,
+      price,
+      enabled_for_enrollment,
+      max_assistance
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: "Evento creado correctamente",
+      data: insertResult.rows[0]
     });
 
   } catch (error) {
