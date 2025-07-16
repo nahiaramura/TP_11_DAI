@@ -16,8 +16,10 @@ app.use('/api/user', authRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/api/tags', tagRoutes); // 👈 Agregado
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  
 });
+
