@@ -17,8 +17,7 @@ router.get('/:id', verifyToken, getEventDetail);
 router.post('/', verifyToken, createEvent);
 router.put('/', verifyToken, updateEvent);
 router.delete('/:id', verifyToken, deleteEvent);
-
-// ✅ Nueva ruta para inscribir usuarios a eventos
 router.post('/enrollment', verifyToken, enrollUser);
+
 
 export default router;
