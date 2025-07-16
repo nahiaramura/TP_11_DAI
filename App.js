@@ -1,5 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
+import tagRoutes from './routes/tag.routes.js';
+app.use('/api/tags', tagRoutes);
 
 export default function App() {
   return (

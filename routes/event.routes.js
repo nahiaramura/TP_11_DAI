@@ -19,5 +19,4 @@ router.put('/', verifyToken, updateEvent);
 router.delete('/:id', verifyToken, deleteEvent);
 router.post('/enrollment', verifyToken, enrollUser);
 
-
 export default router;
