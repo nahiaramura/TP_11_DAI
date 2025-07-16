@@ -1,12 +1,15 @@
 import { getAllEvents, getEventById } from "../models/event.model.js";
 import pool from "../db/index.js";
 
-export const listEvents = async (req, res) => {
+
+const listEvents = async (req, res) => {
   const limit = parseInt(req.query.limit) || 15;
   const offset = parseInt(req.query.offset) || 0;
 
+
   try {
     const events = await getAllEvents(limit, offset);
+
 
     const enriched = await Promise.all(events.map(async ev => {
       const tagsRes = await pool.query(`
@@ -15,6 +18,7 @@ export const listEvents = async (req, res) => {
         JOIN tags t ON et.id_tag = t.id
         WHERE et.id_event = $1
       `, [ev.id]);
+
 
       return {
         ...ev,
@@ -30,6 +34,7 @@ export const listEvents = async (req, res) => {
       };
     }));
 
+
     res.json({
       collection: enriched,
       pagination: {
@@ -44,14 +49,17 @@ export const listEvents = async (req, res) => {
   }
 };
 
-export const getEventDetail = async (req, res) => {
+
+const getEventDetail = async (req, res) => {
   const id = parseInt(req.params.id);
+
 
   try {
     const event = await getEventById(id);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
+
 
     const tagsRes = await pool.query(`
       SELECT t.id, t.name
@@ -60,17 +68,20 @@ export const getEventDetail = async (req, res) => {
       WHERE et.id_event = $1
     `, [id]);
 
+
     res.json({
       ...event,
       tags: tagsRes.rows
     });
+
 
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const createEvent = async (req, res) => {
+
+const createEvent = async (req, res) => {
   const {
     name,
     description,
@@ -83,8 +94,8 @@ export const createEvent = async (req, res) => {
     max_assistance
   } = req.body;
 
+
   try {
-    // validaciones básicas
     if (!name || name.length < 3) {
       return res.status(400).json({ success: false, message: "Name is required and must be at least 3 characters." });
     }
@@ -98,17 +109,27 @@ export const createEvent = async (req, res) => {
       return res.status(400).json({ success: false, message: "Price and duration must be positive numbers." });
     }
 
-    // chequeo de max_assistance vs max_capacity del lugar
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized. User not found in token." });
+    }
+
+
+    const id_creator_user = req.user.id;
+
+
     const locResult = await pool.query(
       `SELECT max_capacity FROM event_locations WHERE id = $1`,
       [id_event_location]
     );
 
+
     if (locResult.rows.length === 0) {
       return res.status(400).json({ success: false, message: "Event location does not exist." });
     }
 
-    const max_capacity = parseInt(locResult.rows[0].max_capacity);
+
+    const max_capacity = parseInt(locResult.rows[0].max_capacity, 10);
     if (max_assistance > max_capacity) {
       return res.status(400).json({
         success: false,
@@ -116,13 +137,14 @@ export const createEvent = async (req, res) => {
       });
     }
 
+
     const insertResult = await pool.query(`
       INSERT INTO events (
         name, description, id_event_category, id_event_location,
         start_date, duration_in_minutes, price,
-        enabled_for_enrollment, max_assistance
+        enabled_for_enrollment, max_assistance, id_creator_user
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `, [
       name,
@@ -133,16 +155,236 @@ export const createEvent = async (req, res) => {
       duration_in_minutes,
       price,
       enabled_for_enrollment,
-      max_assistance
+      max_assistance,
+      id_creator_user
     ]);
 
-    res.status(201).json({
+
+    return res.status(201).json({
       success: true,
       message: "Evento creado correctamente",
       data: insertResult.rows[0]
     });
 
+
   } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+const updateEvent = async (req, res) => {
+  const {
+    id,
+    name,
+    description,
+    id_event_category,
+    id_event_location,
+    start_date,
+    duration_in_minutes,
+    price,
+    enabled_for_enrollment,
+    max_assistance
+  } = req.body;
+
+
+  if (!id) {
+    return res.status(400).json({ success: false, message: "El id del evento es obligatorio." });
+  }
+
+
+  if (!name || name.length < 3) {
+    return res.status(400).json({ success: false, message: "Name is required and must be at least 3 characters." });
+  }
+  if (!description || description.length < 3) {
+    return res.status(400).json({ success: false, message: "Description is required and must be at least 3 characters." });
+  }
+  if (price < 0 || duration_in_minutes < 0) {
+    return res.status(400).json({ success: false, message: "Price and duration must be positive numbers." });
+  }
+
+
+  try {
+    const eventResult = await pool.query(
+      `SELECT * FROM events WHERE id = $1`,
+      [id]
+    );
+
+
+    if (eventResult.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "El evento no existe." });
+    }
+
+
+    const event = eventResult.rows[0];
+
+
+    if (event.id_creator_user !== req.user.id) {
+      return res.status(404).json({
+        success: false,
+        message: "No tenés permiso para modificar este evento."
+      });
+    }
+
+
+    const locResult = await pool.query(
+      `SELECT max_capacity FROM event_locations WHERE id = $1`,
+      [id_event_location]
+    );
+
+
+    if (locResult.rowCount === 0) {
+      return res.status(400).json({ success: false, message: "Event location does not exist." });
+    }
+
+
+    const max_capacity = parseInt(locResult.rows[0].max_capacity, 10);
+    if (max_assistance > max_capacity) {
+      return res.status(400).json({
+        success: false,
+        message: `max_assistance (${max_assistance}) cannot exceed event location capacity (${max_capacity}).`
+      });
+    }
+
+
+    await pool.query(`
+      UPDATE events
+      SET
+        name = $1,
+        description = $2,
+        id_event_category = $3,
+        id_event_location = $4,
+        start_date = $5,
+        duration_in_minutes = $6,
+        price = $7,
+        enabled_for_enrollment = $8,
+        max_assistance = $9
+      WHERE id = $10
+    `, [
+      name,
+      description,
+      id_event_category,
+      id_event_location,
+      start_date,
+      duration_in_minutes,
+      price,
+      enabled_for_enrollment,
+      max_assistance,
+      id
+    ]);
+
+
+    return res.status(200).json({
+      success: true,
+      message: "Evento actualizado correctamente."
+    });
+
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+const deleteEvent = async (req, res) => {
+  const id = parseInt(req.params.id);
+  const userId = req.user.id;
+
+
+  try {
+    const eventRes = await pool.query(
+      `SELECT * FROM events WHERE id = $1`,
+      [id]
+    );
+
+
+    if (eventRes.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found."
+      });
+    }
+
+
+    const event = eventRes.rows[0];
+
+
+    if (event.id_creator_user !== userId) {
+      return res.status(404).json({
+        success: false,
+        message: "No tenés permiso para eliminar este evento."
+      });
+    }
+
+
+    const enrollments = await pool.query(
+      `SELECT * FROM event_enrollments WHERE id_event = $1`,
+      [id]
+    );
+
+
+    if (enrollments.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No se puede eliminar el evento porque tiene usuarios registrados."
+      });
+    }
+
+
+    await pool.query(
+      `DELETE FROM events WHERE id = $1`,
+      [id]
+    );
+
+
+    res.status(200).json({
+      success: true,
+      message: "Evento eliminado correctamente."
+    });
+
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+export {
+  listEvents,
+  getEventDetail,
+  createEvent,
+  updateEvent,
+  deleteEvent
+};
+
+export const enrollUser = async (req, res) => {
+  const { id_event, id_user, description, attended, observations, rating } = req.body;
+
+  try {
+    // Validaciones mínimas
+    if (!id_event || !id_user) {
+      return res.status(400).json({ success: false, message: "id_event y id_user son obligatorios." });
+    }
+
+    // Insertar la inscripción
+    await pool.query(
+      `INSERT INTO event_enrollments (id_event, id_user, description, attended, observations, rating)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id_event, id_user, description || null, attended || false, observations || null, rating || null]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Usuario inscripto correctamente al evento."
+    });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

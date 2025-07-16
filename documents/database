@@ -84,3 +84,51 @@ CREATE TABLE event_categories (
     name VARCHAR(255) NOT NULL,
     display_order INTEGER
 );
+-- Provincias
+INSERT INTO provinces (name, full_name, latitude, longitude, display_order) VALUES
+('CABA', 'Ciudad Autónoma de Buenos Aires', -34.614441, -58.445877, 1),
+('BsAs', 'Provincia de Buenos Aires', -34.920494, -57.953566, 2);
+
+-- Locations
+INSERT INTO locations (name, id_province, latitude, longitude) VALUES
+('Villa Crespo', 1, -34.599876, -58.438816),
+('Nuñez', 1, -34.548805, -58.463230);
+
+-- Users
+INSERT INTO users (first_name, last_name, username, password) VALUES
+('Pablo', 'Ulman', 'pablo.ulman@ort.edu.ar', '123456'),
+('Julian', 'Schiffer', 'jschiffer@ort.edu.ar', 'pass456');
+
+-- Event Categories
+INSERT INTO event_categories (name, display_order) VALUES
+('Musica', 10),
+('Deportes', 20),
+('Recitales', 70);
+
+-- Event Locations
+INSERT INTO event_locations (id_location, name, full_address, max_capacity, latitude, longitude, id_creator_user) VALUES
+(1, 'Movistar Arena', 'Humboldt 450, C1414 CABA', 15000, -34.593488, -58.447359, 1),
+(2, 'Club Atlético River Plate', 'Av. Pres. Figueroa Alcorta 7597', 84567, -34.544545, -58.449476, 2);
+
+-- Tags
+INSERT INTO tags (name) VALUES
+('Rock'),
+('Pop'),
+('Fútbol');
+
+-- Events
+INSERT INTO events (name, description, id_event_category, id_event_location, start_date, duration_in_minutes, price, enabled_for_enrollment, max_assistance, id_creator_user) VALUES
+('Taylor Swift', 'Un alto show', 1, 2, '2024-03-21 03:00:00', 210, 15500, true, 120000, 2),
+('Toto', 'La legendaria banda estadounidense se presentará en Buenos Aires.', 3, 1, '2024-11-22 03:00:00', 120, 150000, true, 12000, 1);
+
+-- Event Tags
+INSERT INTO event_tags (id_event, id_tag) VALUES
+(1, 1),
+(1, 2),
+(2, 1),
+(2, 2);
+
+-- Enrollments
+INSERT INTO event_enrollments (id_event, id_user, description, attended, observations, rating) VALUES
+(1, 2, 'Fan número uno', true, 'Excelente show', 5),
+(2, 1, 'Va con amigos', false, NULL, NULL);
