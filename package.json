@@ -11,6 +11,7 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.0.1",
     "expo": "~53.0.17",
     "expo-status-bar": "~2.2.3",
