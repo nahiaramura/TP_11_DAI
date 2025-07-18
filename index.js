@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import eventRoutes from './routes/event.routes.js';
-import tagRoutes from './routes/tag.routes.js'; // 👈 Agregado
+import tagRoutes from './routes/tag.routes.js'; 
 
 dotenv.config();
 
@@ -14,7 +14,8 @@ app.use(express.json());
 
 app.use('/api/user', authRoutes);
 app.use('/api/event', eventRoutes);
-app.use('/api/tags', tagRoutes); // 👈 Agregado
+app.use('/api/tags', tagRoutes); 
+
 
 const PORT = process.env.PORT || 3001;
 

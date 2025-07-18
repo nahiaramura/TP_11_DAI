@@ -475,6 +475,37 @@ const deleteEnrollment = async (req, res) => {
   }
 };
 
+// -------------------------------
+// List event locations
+// -------------------------------
+
+
+const listEventLocations = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10);
+    const offset = parseInt(req.query.offset, 10);
+    
+    const safeLimit = Number.isInteger(limit) ? limit : 10;
+    const safeOffset = Number.isInteger(offset) ? offset : 0;
+       
+
+      const result = await pool.query(
+          `SELECT * FROM event_locations WHERE id_creator_user = $1 LIMIT $2 OFFSET $3`,
+          [userId, limit, offset]
+      );
+
+      return res.status(200).json({
+          collection: result.rows
+      });
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+          message: 'Error al obtener las ubicaciones de eventos.',
+          error: error.message
+      });
+  }
+};
+
 export {
   listEvents,
   getEventDetail,
@@ -482,5 +513,6 @@ export {
   updateEvent,
   deleteEvent,
   enrollUser,
-  deleteEnrollment
+  deleteEnrollment,
+  listEventLocations
 };
