@@ -4,6 +4,59 @@ import pool from "../db/index.js";
 // -------------------------------
 // List Events (con filtros)
 // -------------------------------
+const listMyEvents = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(`
+      SELECT
+        e.*,
+        ec.name as category_name,
+        el.name as event_location_name
+      FROM events e
+      LEFT JOIN event_categories ec ON ec.id = e.id_event_category
+      LEFT JOIN event_locations el ON el.id = e.id_event_location
+      WHERE e.id_creator_user = $1
+      ORDER BY e.start_date DESC
+    `, [userId]);
+
+    const events = result.rows;
+
+    const enriched = await Promise.all(
+      events.map(async (ev) => {
+        const tagsRes = await pool.query(`
+          SELECT t.id, t.name
+          FROM event_tags et
+          JOIN tags t ON et.id_tag = t.id
+          WHERE et.id_event = $1
+        `, [ev.id]);
+
+        return {
+          ...ev,
+          event_category: {
+            id: ev.id_event_category,
+            name: ev.category_name
+          },
+          event_location: {
+            id: ev.id_event_location,
+            name: ev.event_location_name
+          },
+          tags: tagsRes.rows
+        };
+      })
+    );
+
+    return res.json({ collection: enriched });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al obtener tus eventos.",
+      error: error.message
+    });
+  }
+};
 
 const listEvents = async (req, res) => {
   const limit = parseInt(req.query.limit) || 15;
@@ -514,5 +567,7 @@ export {
   deleteEvent,
   enrollUser,
   deleteEnrollment,
-  listEventLocations
+  listEventLocations,
+  listMyEvents // 👈 AGREGALO ACÁ
 };
+
