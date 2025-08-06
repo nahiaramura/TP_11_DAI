@@ -1,6 +1,6 @@
 // En eventCategory.routes.js
 import express from "express";
-import pool from "../db.js"; // o como sea que importás tu pool de PostgreSQL
+import pool from "../db/index.js";
 
 const router = express.Router();
 

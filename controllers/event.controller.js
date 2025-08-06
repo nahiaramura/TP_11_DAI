@@ -380,6 +380,7 @@ const updateEvent = async (req, res) => {
 const deleteEvent = async (req, res) => {
   const id = parseInt(req.params.id);
   const userId = req.user.id;
+  console.log("REQ.USER:", req.user);
 
   try {
     const eventRes = await pool.query(
@@ -556,6 +557,22 @@ const listEventLocations = async (req, res) => {
           message: 'Error al obtener las ubicaciones de eventos.',
           error: error.message
       });
+  }
+};
+export const getEnrollmentStatus = async (req, res) => {
+  const id_event = req.params.id;
+  const id_user = req.user.id;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM event_enrollments WHERE id_event = $1 AND id_user = $2",
+      [id_event, id_user]
+    );
+
+    return res.json({ enrolled: result.rowCount > 0 });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Error verificando inscripción" });
   }
 };
 

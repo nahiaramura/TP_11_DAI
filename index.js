@@ -5,7 +5,8 @@ import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import eventRoutes from './routes/event.routes.js';
 import tagRoutes from './routes/tag.routes.js';
-import eventLocationRoutes from './routes/eventLocation.routes.js'; // 👈 línea agregada
+import eventLocationRoutes from './routes/eventLocation.routes.js';
+import eventCategoryRoutes from './routes/eventCategory.routes.js'; // 👉 agregado
 
 dotenv.config();
 
@@ -17,10 +18,10 @@ app.use(express.json());
 app.use('/api/user', authRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/api/tags', tagRoutes);
-app.use('/api/event-location', eventLocationRoutes); // 👈 línea agregada
+app.use('/api/event-location', eventLocationRoutes);
+app.use('/api/event-category', eventCategoryRoutes); // 👉 agregado
 
 const PORT = process.env.PORT || 3001;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
