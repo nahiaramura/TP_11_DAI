@@ -78,3 +78,22 @@ export const deleteEventLocation = async (req, res) => {
     res.status(500).json({ message: 'Error al eliminar ubicación' });
   }
 };
+// controllers/eventLocation.controller.js (al final del archivo)
+export const listAllLocationsWithProvince = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        l.id,
+        l.name AS location_name,
+        p.name AS province_name
+      FROM locations l
+      JOIN provinces p ON l.id_province = p.id
+      ORDER BY p.name, l.name
+    `);
+
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error("Error al obtener localidades con provincia:", error);
+    res.status(500).json({ message: "Error al obtener localidades" });
+  }
+};
